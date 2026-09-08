@@ -1,0 +1,20 @@
+{
+  "id": "example.sdk-youtube-copy",
+  "version": "0.1.0",
+  "intent": "Copy a selected YouTube video link in one gesture. Optionally request captions for local TAP capture; publication stays a separate user action.",
+  "license": "MIT",
+  "page": "page.js",
+  "files": [
+    "LICENSE",
+    "vendor/PROVENANCE.md"
+  ],
+  "access": {
+    "origins": [
+      "https://www.youtube.com",
+      "https://youtube.com"
+    ],
+    "capabilities": [
+      "page.inject"
+    ]
+  }
+}

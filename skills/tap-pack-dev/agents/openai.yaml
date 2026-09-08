@@ -1,0 +1,4 @@
+interface:
+  display_name: "TAP Pack Developer"
+  short_description: "Build TAP packs with reusable operations and SDK tools"
+  default_prompt: "Use $tap-pack-dev to build a TAP pack for this user scenario with the existing SDK."

@@ -1,0 +1,18 @@
+{
+  "access": {
+    "capabilities": [
+      "page.inject"
+    ],
+    "origins": [
+      "https://articles.example"
+    ]
+  },
+  "files": [
+    "LICENSE"
+  ],
+  "id": "example.article-copy",
+  "intent": "Copy the current selected article URL in one click. Selection is a[data-article-selected=\"true\"]. Later href changes apply to the next click; unsuccessful writes display Copy failed.",
+  "license": "MIT",
+  "page": "page.js",
+  "version": "0.1.0"
+}

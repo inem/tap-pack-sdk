@@ -1,0 +1,14 @@
+{
+  "name": "tap-pack-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    "./copy": "./src/copy.js",
+    "./dom": "./src/dom.js"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "status": "passed",
+  "browser": "152.0.7977.76",
+  "node": "v24.19.0",
+  "playwright": "1.62.1",
+  "executed": "build-article/pack/page.js",
+  "cases": [
+    "initial selected URL",
+    "href mutation",
+    "selection change",
+    "clipboard rejection plus failed fallback displays failure",
+    "missing href does not write or display success",
+    "double script injection leaves one button",
+    "write invoked during user activation"
+  ],
+  "writes": [
+    {
+      "text": "https://articles.example/articles/first?view=full#intro",
+      "activated": true
+    },
+    {
+      "text": "https://articles.example/articles/revised?revision=2#changed",
+      "activated": true
+    },
+    {
+      "text": "https://articles.example/articles/second",
+      "activated": true
+    },
+    {
+      "text": "https://articles.example/articles/second",
+      "activated": true
+    }
+  ],
+  "fallbackWrites": [
+    "https://articles.example/articles/second"
+  ],
+  "finalButtonText": "Copy failed",
+  "pageErrors": [],
+  "requests": [
+    "https://articles.example/reading"
+  ],
+  "allRequestsFulfilledByFixture": true,
+  "liveSite": "not tested",
+  "realClipboard": "not tested; synthetic binding"
+}
