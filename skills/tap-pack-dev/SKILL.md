@@ -29,6 +29,12 @@ and independently contribute preparation. DOM/network/clipboard implementations
 are the final bindings. Functional availability is not `access.capabilities`:
 manifest capabilities are requested permissions and remain Core-owned.
 
+When site recognition, link discovery, action placement or dynamic-page handling
+is missing, use the [site-adapter subworkflow](references/site-adapter.md). It also
+covers extending a reusable site UI library. Site knowledge belongs beside the
+adapter and its fixtures, so later packs can reuse it; do not repeat a full site
+investigation for every feature.
+
 Use `sdk.py init` for a small page starter, or adapt an existing pack. Author
 `tap-pack.json` and feature modules; `sdk.py build` generates resources, hashes,
 order, final manifest, documentation and archive. Never hand-maintain those outputs.

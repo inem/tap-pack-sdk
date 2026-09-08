@@ -115,7 +115,12 @@ separately. The build does not close those existing live tasks.
 
 The maintained skill is `skills/tap-pack-dev/SKILL.md`. It takes this SDK directory
 and a Core checkout as tooling inputs. Use it to create a pack from a concrete user
-scenario, rather than author manifests/protocols from memory.
+scenario, rather than author manifests/protocols from memory. For a new or incomplete
+site UI adapter it routes to the [site-adapter subworkflow](skills/tap-pack-dev/references/site-adapter.md):
+observe the page, retain site meanings/bindings, compose the feature and check dynamic
+DOM. Site knowledge stays in the adapter and its tests, not in a separate skill per
+site. Generic mounted controls/state rendering are still a future SDK seam; the
+current subworkflow does not pretend they already exist.
 
 ## Verified second site and repeatable checks
 
