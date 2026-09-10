@@ -37,7 +37,7 @@ def build(project, output, bun):
         raise ValueError('Output exists; choose a new build directory: ' + str(output))
     spec = json.loads((project / 'tap-pack.json').read_text(), object_pairs_hook=no_duplicate_keys)
     fields(spec, ('id', 'version', 'intent', 'license', 'access'),
-           ('page', 'files', 'entrypoints', 'config', 'requires'), 'author definition')
+           ('page', 'files', 'entrypoints', 'config', 'requires', 'features'), 'author definition')
     if not isinstance(spec['intent'], str) or not spec['intent'].strip():
         raise ValueError('intent must describe the user result')
     if not isinstance(spec['license'], str) or not spec['license'].strip():
@@ -59,6 +59,8 @@ def build(project, output, bun):
             'entrypoints': dict(spec.get('entrypoints', {})),
             'config': spec.get('config', {}), 'access': spec['access']
         }
+        if 'features' in spec:
+            manifest['features'] = spec['features']
         for name in manifest['files']:
             source = local_file(project, name)
             target = package / name
