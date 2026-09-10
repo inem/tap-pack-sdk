@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/inem/tap-pack-sdk/contracts/page-observations/v1/schema.json",
+  "title": "TAP page observations v1 provider result",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "kind", "label", "value"],
+    "properties": {
+      "id": {"type": "string", "minLength": 1},
+      "kind": {"const": "feature"},
+      "label": {"type": "string", "minLength": 1},
+      "value": {"type": "string", "minLength": 1}
+    },
+    "additionalProperties": false
+  }
+}
