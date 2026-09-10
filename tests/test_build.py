@@ -67,7 +67,8 @@ class BuildTests(unittest.TestCase):
     def test_static_features_are_copied_to_validated_manifest(self):
         definition = json.loads((self.project / 'tap-pack.json').read_text())
         definition['features'] = [
-            {'id': 'quick.copy', 'label': 'Quick copy', 'value': 'One click'},
+            {'id': 'quick.copy', 'label': 'Quick copy', 'value': 'One click',
+             'folder': 'data/readers/example.article-copy'},
         ]
         sdk.write_json(self.project / 'tap-pack.json', definition)
         result = sdk.build(self.project, self.root / 'features', BUN)

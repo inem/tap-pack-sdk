@@ -153,10 +153,12 @@ not pack files.
 ## Page observations
 
 Stable user-facing capabilities belong in the author definition's optional
-`features: [{id, label, value}]`. The SDK copies them into the validated pack
+`features: [{id, label, value, folder?}]`. The SDK copies them into the validated pack
 manifest, and Core can expose them for every granted origin even when the pack
 has no page entrypoint. These declarations describe results; they grant no access
-and create no executable binding.
+and create no executable binding. A feature that owns files may set `folder` to a
+canonical path below the profile's `data/` directory. A generic presentation can
+then show or reveal the output without learning what the files mean.
 
 `tap-pack-sdk/context` exposes `context(window)`: `provide(read)` registers a
 page-local source and returns its teardown; `snapshot()` collects current facts.
