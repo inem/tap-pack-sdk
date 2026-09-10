@@ -74,9 +74,11 @@ def build(project, output, bun):
             version = subprocess.check_output([bun, '--version'], text=True).strip()
             if version != BUN_VERSION:
                 raise ValueError('Page build requires Bun ' + BUN_VERSION + '; found ' + version)
+            environment = dict(os.environ)
+            environment.setdefault('BUN_TELEMETRY_DISABLED', '1')
             bundle = subprocess.run([bun, str(SDK / 'tools/bundle.mjs'), str(project),
                                      spec['page'], str(package / 'page.js')],
-                                    capture_output=True, text=True)
+                                    capture_output=True, text=True, env=environment)
             if bundle.returncode:
                 raise ValueError(bundle.stderr or bundle.stdout)
             provenance['browser'] = json.loads(bundle.stdout)

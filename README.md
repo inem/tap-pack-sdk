@@ -154,7 +154,9 @@ not pack files.
 
 `tap-pack-sdk/context` exposes `context(window)`: `provide(read)` registers a
 page-local source and returns its teardown; `snapshot()` collects current facts.
-A fact is `{label, value}` (plain text). These are optional observations, not
+The versioned provider-result contract is
+[`contracts/page-observations/v1`](contracts/page-observations/v1/README.md): a
+feature fact is `{id, kind: "feature", label, value}` in plain text. These are optional observations, not
 permissions, pack manifests, or authoritative Core status. Sources and UI have
 independent lifetimes. The inspector pack is the first consumer; LinkedIn provides
-observed DOM counts without supplying menu entries. No network or service is added.
+its own feature facts without supplying menu entries. No network or service is added.
