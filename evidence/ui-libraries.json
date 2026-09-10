@@ -1,0 +1,66 @@
+{
+  "date": "2026-09-09",
+  "scope": "shared UI mounting/state, LinkedIn native presentation, reusable author workflow",
+  "source_sha256": {
+    "src/ui.js": "847bddceb1291a2e4c1897909f9341d62bffbeaddfc069ce271cec386dbc25b4",
+    "src/dom.js": "04b187f04d9d9b045ba7a1bff8c29237c4c4515d3c08cb40cd80f624ffed6e41",
+    "examples/articles/page.js": "623992124d2baa3792e1ad3d94082105def4ca653de1fe2544ac6579c6ad4f8b"
+  },
+  "artifacts": {
+    "linkedin": "c4f91d85f617597ce66042a276483e7bee97f093d64d2c2e6e9ad0f20fcbed4e",
+    "articles": "773cdd612f287bfa335e62ac32bbe1e62ac315221c7c86b03b24c412c0656f35"
+  },
+  "checks": {
+    "sdk_python_tests": 5,
+    "copy_and_linkedin_tests": 8,
+    "assertions": 22,
+    "linkedin_store": "passed",
+    "articles_store": "passed on final artifact",
+    "skill_validator": "passed"
+  },
+  "browser_fixtures": {
+    "linkedin": [
+      "pending action remains pending when neighboring control inserted",
+      "completion updates same view after neighbor insertion",
+      "new card identity does not receive old action completion",
+      "replacement copies new URL",
+      "clipboard refusal displays failure",
+      "duplicate injection has two controls for two known cards",
+      "unknown/sponsored cards unavailable",
+      "hydration removal retains known bindings",
+      "dispose removes controls"
+    ],
+    "articles": [
+      "same shared UI with text presentation",
+      "selected article change",
+      "keyboard Enter retains user activation",
+      "missing URL never writes",
+      "clipboard refusal retains focus and reports failure"
+    ],
+    "execution": "CUA, built scripts with synthetic fixtures",
+    "last_change": "shared-slot stability change verified with neighboring control and final articles initial copy; other scenarios passed immediately preceding build"
+  },
+  "live_linkedin": {
+    "installed_version": "0.2.0",
+    "delivery": "existing legacy TAP with pinned built asset",
+    "mouse_copy": "passed",
+    "keyboard_copy": "passed",
+    "visible_keyboard_focus": "passed",
+    "button_and_native_peer_px": [
+      32,
+      32
+    ],
+    "native_classes_equal": true,
+    "menu_identity_or_expanded_state_copied": false,
+    "layout": "light SDUI feed in 809px in-app browser viewport; screenshot visually inspected",
+    "clipboard_restored": true,
+    "final_artifact_mouse_copy": "passed after final reload"
+  },
+  "not_claimed": [
+    "new LinkedIn pagination identities",
+    "dark mode",
+    "all LinkedIn variants",
+    "YouTube migration",
+    "automatic ontology-to-code compilation"
+  ]
+}

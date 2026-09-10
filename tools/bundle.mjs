@@ -7,7 +7,7 @@ const project = realpathSync(projectArg);
 const sdk = realpathSync(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
 const inputs = new Map();
 const inside = (root, path) => { const rel = relative(root, path); return rel !== '..' && !rel.startsWith('../') && !isAbsolute(rel); };
-const modules = { 'tap-pack-sdk/copy': 'src/copy.js', 'tap-pack-sdk/dom': 'src/dom.js' };
+const modules = { 'tap-pack-sdk/context': 'src/context.js', 'tap-pack-sdk/copy': 'src/copy.js', 'tap-pack-sdk/dom': 'src/dom.js', 'tap-pack-sdk/ui': 'src/ui.js' };
 const built = await Bun.build({
   entrypoints: [resolve(project, entryArg)], target: 'browser', format: 'iife',
   minify: true, sourcemap: 'none',

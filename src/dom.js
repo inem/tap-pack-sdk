@@ -10,6 +10,7 @@ export function select_link(selector, root, represent = url => url) {
 
 export function browser_clipboard(navigator, document) {
   function fallback(text) {
+    const active = document.activeElement;
     const area = document.createElement('textarea');
     area.value = text;
     area.style.cssText = 'position:fixed;opacity:0;left:-9999px;top:0';
@@ -17,7 +18,7 @@ export function browser_clipboard(navigator, document) {
     try {
       area.select();
       if (!document.execCommand('copy')) throw new Error('Clipboard write failed');
-    } finally { area.remove(); }
+    } finally { area.remove(); if (active?.isConnected) active.focus({preventScroll:true}); }
   }
   return { writeText(text) {
     try {
@@ -26,6 +27,26 @@ export function browser_clipboard(navigator, document) {
       }
     } catch (_) { /* Try the browser fallback. */ }
     return fallback(text);
+  }, writeTextDeferred(source) {
+    let value;
+    try { value = source(); }
+    catch (error) { return Promise.reject(error); }
+    const text = Promise.resolve(value).then(value => {
+      if (typeof value !== 'string' || !value) throw new Error('No text selected');
+      return value;
+    });
+    const win = document.defaultView;
+    if (navigator.clipboard?.write && win?.ClipboardItem && win?.Blob) {
+      try {
+        const data = text.then(value => new win.Blob([value], {type:'text/plain'}));
+        const item = new win.ClipboardItem({'text/plain':data});
+        // Start the privileged write in the gesture; ClipboardItem resolves its
+        // payload after the source finishes preparing.
+        return Promise.resolve(navigator.clipboard.write([item]))
+          .catch(() => text.then(fallback));
+      } catch (_) { /* Try the asynchronous fallback below. */ }
+    }
+    return text.then(fallback);
   } };
 }
 

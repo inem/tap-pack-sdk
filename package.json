@@ -6,7 +6,9 @@
   "license": "MIT",
   "exports": {
     "./copy": "./src/copy.js",
-    "./dom": "./src/dom.js"
+    "./dom": "./src/dom.js",
+    "./context": "./src/context.js",
+    "./ui": "./src/ui.js"
   },
   "scripts": {
     "test": "bun test"

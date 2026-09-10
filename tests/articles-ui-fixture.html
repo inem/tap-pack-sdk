@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>Articles — shared UI check</title>
+<style>body{font:16px system-ui;max-width:650px;margin:30px auto}button{margin:8px;padding:8px}a{display:block}#result{overflow-wrap:anywhere}</style>
+<h1>Selected article</h1>
+<a data-article-selected="true" href="/articles/first?view=full#intro">First article</a>
+<a id="second" href="/articles/second">Second article</a>
+<button id="select">Select second article</button><button id="refuse">Refuse clipboard</button><button id="remove">Remove selected link</button><button id="reinject">Reinject</button><button id="dispose">Dispose</button>
+<p id="result" role="status">No copy yet</p>
+<script>
+let refusal=false,writes=0;
+Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText(text){document.getElementById('result').textContent=JSON.stringify({text,writes:++writes,activation:navigator.userActivation.isActive});return refusal?Promise.reject(new Error('Refused')):Promise.resolve();}}});
+document.execCommand=()=>false;
+document.getElementById('select').onclick=()=>{document.querySelector('[data-article-selected]').removeAttribute('data-article-selected');document.getElementById('second').setAttribute('data-article-selected','true');};
+document.getElementById('refuse').onclick=()=>refusal=true;
+document.getElementById('remove').onclick=()=>document.querySelector('[data-article-selected]').removeAttribute('href');
+document.getElementById('reinject').onclick=()=>{const s=document.createElement('script');s.src='./pack/page.js?reload='+Date.now();document.body.append(s);};
+document.getElementById('dispose').onclick=()=>window['__tap_example.article-copy']?.dispose();
+</script><script src="./pack/page.js"></script>

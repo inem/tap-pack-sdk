@@ -119,8 +119,9 @@ scenario, rather than author manifests/protocols from memory. For a new or incom
 site UI adapter it routes to the [site-adapter subworkflow](skills/tap-pack-dev/references/site-adapter.md):
 observe the page, retain site meanings/bindings, compose the feature and check dynamic
 DOM. Site knowledge stays in the adapter and its tests, not in a separate skill per
-site. Generic mounted controls/state rendering are still a future SDK seam; the
-current subworkflow does not pretend they already exist.
+site. Generic mounted controls and state rendering are available through
+`tap-pack-sdk/ui`; see [site UI libraries](docs/ui.md) for the executable API,
+LinkedIn/articles examples and the process for developing another site binding.
 
 ## Verified second site and repeatable checks
 
@@ -129,8 +130,9 @@ SDK and a concrete article-copy task. It imports the same operations unchanged;
 its code only mounts a control, selects the current article and presents the result.
 Seven Chrome checks passed, including changed href/selection, clipboard refusal,
 missing href, duplicate injection and synchronous activation. See `evidence/`.
-No real clipboard or public site was used. The author suggested an optional
-mounted-button starter, not another operation framework.
+No real clipboard or public site was used. The articles example now also consumes the shared mount/state UI module; the
+original seven-check report predates that migration. Current browser checks are
+recorded separately in `evidence/ui-libraries.json`.
 
 ```sh
 bun test tests/copy.test.js
@@ -147,3 +149,12 @@ Browser test dependencies are explicit developer tooling. The scripts fulfill al
 requests from local fixtures; they do not contact the public example sites. Output
 paths must be fresh for builds. Browser reports/screenshots are test artifacts,
 not pack files.
+
+## Page observations
+
+`tap-pack-sdk/context` exposes `context(window)`: `provide(read)` registers a
+page-local source and returns its teardown; `snapshot()` collects current facts.
+A fact is `{label, value}` (plain text). These are optional observations, not
+permissions, pack manifests, or authoritative Core status. Sources and UI have
+independent lifetimes. The inspector pack is the first consumer; LinkedIn provides
+observed DOM counts without supplying menu entries. No network or service is added.

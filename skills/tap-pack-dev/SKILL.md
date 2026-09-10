@@ -31,7 +31,7 @@ manifest capabilities are requested permissions and remain Core-owned.
 
 When site recognition, link discovery, action placement or dynamic-page handling
 is missing, use the [site-adapter subworkflow](references/site-adapter.md). It also
-covers extending a reusable site UI library. Site knowledge belongs beside the
+covers developing reusable site UI libraries and native presentation bindings. Site knowledge belongs beside the
 adapter and its fixtures, so later packs can reuse it; do not repeat a full site
 investigation for every feature.
 

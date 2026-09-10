@@ -1,6 +1,6 @@
 import { test, expect } from 'bun:test';
 import { copy_link, copy_with_preparation } from '../src/copy.js';
-import { select_link } from '../src/dom.js';
+import { browser_clipboard, select_link } from '../src/dom.js';
 
 test('same operation accepts a DOM source and a non-browser clipboard', async () => {
   let href = '/one';
@@ -36,4 +36,22 @@ test('clipboard refusal stays a refusal even if preparation succeeds', async () 
   const result = copy_with_preparation(() => 'url', { writeText: () => Promise.reject(Error('denied')) }, () => 'fetched');
   await expect(result.copy).rejects.toThrow('denied');
   expect(await result.preparation).toEqual({ status: 'completed', value: 'fetched' });
+});
+
+test('deferred clipboard starts the privileged write before text preparation finishes', async () => {
+  let finish, item, writes = 0;
+  const pending = new Promise(resolve => { finish = resolve; });
+  class FakeBlob { constructor(parts, options) {this.parts=parts;this.type=options.type;} }
+  class FakeClipboardItem { constructor(data) {this.data=data;} }
+  const clipboard = browser_clipboard({clipboard:{write(items) {
+    writes++; item=items[0];
+    return item.data['text/plain'].then(() => {});
+  }}}, {defaultView:{Blob:FakeBlob,ClipboardItem:FakeClipboardItem}});
+  const copied = clipboard.writeTextDeferred(() => pending);
+  expect(writes).toBe(1);
+  finish('expanded post');
+  await copied;
+  const blob = await item.data['text/plain'];
+  expect(blob.parts).toEqual(['expanded post']);
+  expect(blob.type).toBe('text/plain');
 });

@@ -51,12 +51,24 @@ action is unavailable, not permission to copy a guessed/current-page URL.
   reusable controls. Keep site selectors out of generic controls and keep
   clipboard/network behavior out of site discovery.
 
-The current SDK exports `copy_link`, `copy_with_preparation`, `select_link`,
-`browser_clipboard` and `on_click`. It does **not** yet supply a generic mounted
-button/state renderer or a universal site-observer API. Reuse an existing control
-if available; otherwise write the smallest local presentation needed. Extract a
-shared control when a concrete second consumer demonstrates reuse. Do not invent
-SDK imports or claim that manual presentation code is generated from meanings.
+The SDK exports `mount_action` and `action_button` from `tap-pack-sdk/ui` for
+owned controls, lifecycle and state feedback; see the SDK's `docs/ui.md` for exact
+arguments and a complete development loop. Site code supplies targets, identity,
+placement and presentation; feature code supplies the operation and labels.
+Use a custom view when the site's control structure differs; do not add site
+selectors/palettes to the general module.
+
+Before presenting an injected control, inspect a real native peer: structure,
+computed geometry, spacing, theme source, hover and focus. Prefer stable site
+presentation tokens; live classes can be borrowed from a semantically located peer
+when necessary. Construct owned elements: never copy IDs, component keys, menu
+state, tracking attributes or handlers. Avoid a handmade generic pill when the
+site uses compact icon actions. Dynamic class changes are a compatibility surface.
+
+The deliverable is reusable site knowledge plus a verified action: inspect it
+beside native controls, use keyboard activation, exercise failure and replacement
+while an action is pending, and verify cleanup. Record untested themes/variants.
+A green transport or clipboard test alone does not establish native integration.
 
 For an existing reusable site library, preserve its callers; new capabilities
 should extend the observed object/placement surface rather than absorb every
