@@ -152,6 +152,12 @@ not pack files.
 
 ## Page observations
 
+Stable user-facing capabilities belong in the author definition's optional
+`features: [{id, label, value}]`. The SDK copies them into the validated pack
+manifest, and Core can expose them for every granted origin even when the pack
+has no page entrypoint. These declarations describe results; they grant no access
+and create no executable binding.
+
 `tap-pack-sdk/context` exposes `context(window)`: `provide(read)` registers a
 page-local source and returns its teardown; `snapshot()` collects current facts.
 The versioned provider-result contract is

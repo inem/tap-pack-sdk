@@ -64,5 +64,17 @@ class BuildTests(unittest.TestCase):
         result = sdk.build(self.project, self.root / 'reader', '/does-not-exist/bun')
         self.assertEqual(sdk.check(self.root / 'reader' / result['artifact'])['install_enable_disable_uninstall'], 'passed')
 
+    def test_static_features_are_copied_to_validated_manifest(self):
+        definition = json.loads((self.project / 'tap-pack.json').read_text())
+        definition['features'] = [
+            {'id': 'quick.copy', 'label': 'Quick copy', 'value': 'One click'},
+        ]
+        sdk.write_json(self.project / 'tap-pack.json', definition)
+        result = sdk.build(self.project, self.root / 'features', BUN)
+        import tarfile
+        with tarfile.open(self.root / 'features' / result['artifact'], 'r:gz') as archive:
+            manifest = json.load(archive.extractfile('pack.json'))
+        self.assertEqual(manifest['features'], definition['features'])
+
 if __name__ == '__main__':
     unittest.main()
