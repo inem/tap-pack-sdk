@@ -22,6 +22,42 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _clean_url(url):
+    """Drop any embedded userinfo (a token/password) before it ships in BUILD.json."""
+    if not url:
+        return None
+    from urllib.parse import urlsplit, urlunsplit
+    parts = urlsplit(url.strip())
+    if parts.scheme in ('http', 'https') and '@' in parts.netloc:
+        parts = parts._replace(netloc=parts.netloc.rsplit('@', 1)[1])
+    return urlunsplit(parts) if parts.scheme else url.strip()
+
+
+def git_source(project):
+    """Best-effort provenance of the author's tree: origin URL, HEAD revision and
+    whether it had uncommitted changes at build time. Recorded only when the pack
+    directory is itself the git work-tree root, so a stray ancestor repository can
+    never leak in and reproducibility from a non-git copy is preserved. Missing
+    git, remote or commit yields nulls, never a build failure."""
+    project = Path(project).resolve()
+
+    def git(*args):
+        try:
+            result = subprocess.run(['git', '-C', str(project), *args],
+                                    capture_output=True, text=True)
+        except OSError:
+            return None
+        return result.stdout.strip() if result.returncode == 0 else None
+
+    top = git('rev-parse', '--show-toplevel')
+    if not top or Path(top).resolve() != project:
+        return {'repository': None, 'revision': None, 'dirty': None}
+    status = git('status', '--porcelain')
+    return {'repository': _clean_url(git('remote', 'get-url', 'origin')),
+            'revision': git('rev-parse', 'HEAD'),
+            'dirty': None if status is None else bool(status)}
+
+
 def local_file(root, name):
     from tap_core.packs import pack_file
     # Use Core's canonical path and confinement checks for author inputs too.
@@ -67,6 +103,7 @@ def build(project, output, bun):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
         provenance = {'sdk_version': '0.1.0', 'definition_sha256': digest(project / 'tap-pack.json'),
+                      'source': git_source(project),
                       'tools': {name: digest(SDK / name) for name in ('sdk.py', 'tools/bundle.mjs')},
                       'copied_inputs': {name: digest(package / name) for name in manifest['files']}}
         if spec.get('page'):
