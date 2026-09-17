@@ -28,7 +28,11 @@ python3 /absolute/path/to/tap-pack-sdk/sdk.py check ./build-article/example.arti
 
 Use a new output directory for each build. Outputs: validated `pack/`, deterministic
 `.tap-pack`, `SHA256SUMS`, `report.json`. Packaging includes generated README, byte
-provenance and SDK license. `check` uses a temporary Core PackStore and synthetic
+provenance and SDK license. When the author tree is a git work-tree root, `BUILD.json`
+also records `source`: the origin URL (with any embedded credentials stripped), the
+HEAD `revision` and whether the tree was `dirty` — so an installed version's origin is
+traceable. A non-git tree records nulls there and stays byte-identical, so builds from a
+detached copy remain reproducible. `check` uses a temporary Core PackStore and synthetic
 profile: install, denied missing grants, enable, disable, uninstall. No proxy/Hub
 starts, no system settings change, no pack code executes. Feature and live delivery
 checks remain distinct.

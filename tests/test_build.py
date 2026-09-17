@@ -33,6 +33,42 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(checked['install_enable_disable_uninstall'], 'passed')
         self.assertEqual(checked['missing_grants'], 'rejected')
 
+    def test_build_source_provenance_is_null_without_git(self):
+        # A non-git author tree records null provenance and stays byte-identical,
+        # so the reproducibility guarantee above is unaffected.
+        sdk.build(self.project, self.root / 'out', BUN)
+        build = json.loads((self.root / 'out' / 'pack' / 'BUILD.json').read_text())
+        self.assertEqual(build['source'], {'repository': None, 'revision': None, 'dirty': None})
+
+    def test_build_records_git_provenance_and_strips_url_credentials(self):
+        import subprocess
+
+        def git(*args):
+            subprocess.run(['git', '-C', str(self.project), *args], check=True, capture_output=True)
+
+        git('init', '-q')
+        git('config', 'user.email', 'author@example.test')
+        git('config', 'user.name', 'Author')
+        git('remote', 'add', 'origin',
+            'https://x-access-token:SECRET@github.com/inem/tap-pack-example.git')
+        git('add', '-A')
+        git('commit', '-q', '-m', 'init')
+        head = subprocess.run(['git', '-C', str(self.project), 'rev-parse', 'HEAD'],
+                              capture_output=True, text=True).stdout.strip()
+        sdk.build(self.project, self.root / 'clean', BUN)
+        source = json.loads((self.root / 'clean' / 'pack' / 'BUILD.json').read_text())['source']
+        self.assertEqual(source['revision'], head)
+        # The embedded token is stripped from the recorded URL.
+        self.assertEqual(source['repository'], 'https://github.com/inem/tap-pack-example.git')
+        self.assertFalse(source['dirty'])
+        # An uncommitted change is reflected.
+        (self.project / 'tap-pack.json').write_text(
+            (self.project / 'tap-pack.json').read_text() + '\n')
+        sdk.build(self.project, self.root / 'dirty', BUN)
+        dirty = json.loads((self.root / 'dirty' / 'pack' / 'BUILD.json').read_text())['source']
+        self.assertTrue(dirty['dirty'])
+        self.assertEqual(dirty['revision'], head)
+
     def test_failed_build_has_no_published_output(self):
         (self.project / 'page.js').write_text("import './missing.js';")
         with self.assertRaises(ValueError):
