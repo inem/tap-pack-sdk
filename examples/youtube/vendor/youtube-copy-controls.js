@@ -467,6 +467,32 @@
     if (later.previousElementSibling !== subs) subs.parentElement.insertBefore(later, subs.nextSibling);
   }
 
+  function compactNativeShare() {
+    if (location.pathname !== '/watch') return;
+    var actionsRoot = document.querySelector('ytd-watch-metadata #actions');
+    if (!actionsRoot) return;
+    var buttons = actionsRoot.querySelectorAll('button, [role="button"]');
+    for (var i = 0; i < buttons.length; i++) {
+      var button = buttons[i];
+      var label = (button.getAttribute('aria-label') || button.textContent || '').replace(/\s+/g, ' ').trim();
+      if (label !== 'Share' && label !== 'Поделиться') continue;
+      button.style.setProperty('width', '40px', 'important');
+      button.style.setProperty('min-width', '40px', 'important');
+      button.style.setProperty('max-width', '40px', 'important');
+      button.style.setProperty('height', '40px', 'important');
+      button.style.setProperty('padding', '0', 'important');
+      button.style.setProperty('border-radius', '20px', 'important');
+      button.querySelectorAll('.ytSpecButtonShapeNextButtonTextContent').forEach(function(text) {
+        text.style.setProperty('display', 'none', 'important');
+      });
+      button.querySelectorAll('yt-touch-feedback-shape, yt-light-shape').forEach(function(shape) {
+        shape.style.setProperty('width', '40px', 'important');
+        shape.style.setProperty('height', '40px', 'important');
+      });
+      return;
+    }
+  }
+
   function syncCurrentPage() {
     clearInterval(state.currentTimer);
     UI.removeElement('tap-copy-current-video');
@@ -478,9 +504,11 @@
       .forEach(function(element){ element.remove(); });
     var attempts = 0;
     mountCurrentPage();
+    compactNativeShare();
     state.currentTimer = setInterval(function(){
       attempts++;
       mountCurrentPage();
+      compactNativeShare();
       if (attempts >= 32) clearInterval(state.currentTimer);
     }, 50);
   }
@@ -543,6 +571,7 @@
   state.watchSubsTimer = setInterval(function(){
     var id = UI.getVideoId(location.href);
     if (!id || location.pathname !== '/watch') return;
+    compactNativeShare();
     seatWatchSubs({
       id: id,
       url: location.href,
