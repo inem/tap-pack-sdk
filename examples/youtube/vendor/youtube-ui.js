@@ -337,23 +337,27 @@
       if (!container) return null;
 
       const button = this._createButton(options, {
-        minWidth: '36px',
-        height: '36px',
-        padding: options.label ? '0 14px' : '0 10px',
-        gap: '7px',
+        minWidth: '18px',
+        height: '18px',
+        padding: options.label ? '0 7px' : '0 5px',
+        gap: '4px',
         border: '0',
-        borderRadius: '18px',
+        borderRadius: '9px',
         background: 'var(--yt-spec-badge-chip-background, rgba(255,255,255,.1))',
         color: 'var(--yt-spec-text-primary, currentColor)',
         cursor: 'pointer',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        font: '500 14px/1 Roboto, Arial, sans-serif',
-        marginInline: '4px',
+        font: '500 7px/1 Roboto, Arial, sans-serif',
+        marginInline: '2px',
         whiteSpace: 'nowrap',
       });
       if (!button) return null;
+      button.querySelectorAll('svg').forEach((svg) => {
+        svg.style.setProperty('width', '12px', 'important');
+        svg.style.setProperty('height', '12px', 'important');
+      });
 
       const before = this.findVisible('moreActionsButton') || this.find('moreActionsButton');
       return this._insertBeforeDirectChild(container, button, before);
@@ -447,9 +451,18 @@
       button.setAttribute('aria-label', options.ariaLabel || options.title || options.label || actionId);
       button.title = options.title || options.ariaLabel || options.label || '';
 
-      const nativeIcon = button.querySelector('svg');
-      if (nativeIcon) nativeIcon.dataset.youtubeUiIcon = '';
-      if (options.icon) this.setButtonIcon(button, options.icon);
+      let nativeIcon = button.querySelector('svg') || button.querySelector('.yt-icon-shape');
+      if (!nativeIcon) {
+        nativeIcon = document.createElement('span');
+        button.prepend(nativeIcon);
+      }
+      nativeIcon.dataset.youtubeUiIcon = '';
+      if (options.icon) {
+        const drawn = this.setButtonIcon(button, options.icon);
+        drawn?.querySelectorAll?.('path').forEach((path) => {
+          path.setAttribute('fill', '#0f0f0f');
+        });
+      }
 
       ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'auxclick'].forEach((type) => {
         button.addEventListener(type, (event) => {
@@ -674,9 +687,18 @@
       button.title = options.title || options.ariaLabel || options.label || '';
       button.dataset.videoId = entry.id;
 
-      const nativeIcon = button.querySelector('svg');
-      if (nativeIcon) nativeIcon.dataset.youtubeUiIcon = '';
-      if (options.icon) this.setButtonIcon(button, options.icon);
+      let nativeIcon = button.querySelector('svg') || button.querySelector('.yt-icon-shape');
+      if (!nativeIcon) {
+        nativeIcon = document.createElement('span');
+        button.prepend(nativeIcon);
+      }
+      nativeIcon.dataset.youtubeUiIcon = '';
+      if (options.icon) {
+        const drawn = this.setButtonIcon(button, options.icon);
+        drawn?.querySelectorAll?.('path').forEach((path) => {
+          path.setAttribute('fill', '#0f0f0f');
+        });
+      }
 
       ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'auxclick'].forEach((type) => {
         button.addEventListener(type, (event) => {

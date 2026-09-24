@@ -8,6 +8,7 @@
   var LOAD_PATH = 'M11 4h2v9l3.5-3.5 1.4 1.4L12 16.8l-5.9-5.9 1.4-1.4L11 13V4zm-5 15h12v2H6v-2z';
   var COPY_ALL_PATH = 'M7 2h10v2H7V2zM4 6h16v2H4V6zm2 4h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm0 2v8h12v-8H6z';
   var SUBS_PATH = 'M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4V6h16v12zM6 11h4v2H6v-2zm6 0h6v2h-6v-2z';
+  var LATER_PATH = 'M12 2a10 10 0 1 0 .001 0zM12.5 7H11v6l4.7 2.8.8-1.3-4-2.4V7z';
 
   function icon(pathData) {
     var namespace = 'http://www.w3.org/2000/svg';
@@ -53,45 +54,69 @@
     });
   }
 
-  function addToBuffer(entry) {
+  var BUFFER_ID = 'PLbagoXZg_pCU';
+  var LATER_ID = 'WL';
+
+  function youtubeHeaders(hash, get) {
+    var headers = {
+      'content-type': 'application/json',
+      authorization: 'SAPISIDHASH ' + hash,
+      'x-origin': location.origin,
+      'x-goog-authuser': '0',
+      'x-goog-pageid': String(get('DELEGATED_SESSION_ID') || '')
+    };
+    var clientName = get('INNERTUBE_CONTEXT_CLIENT_NAME');
+    var clientVersion = get('INNERTUBE_CONTEXT_CLIENT_VERSION');
+    if (clientName) headers['x-youtube-client-name'] = String(clientName);
+    if (clientVersion) headers['x-youtube-client-version'] = String(clientVersion);
+    return headers;
+  }
+
+  function playlistContains(text, playlistId) {
+    var at = text.indexOf('"playlistId":"' + playlistId + '"');
+    if (at < 0) return false;
+    return text.slice(at, at + 400).indexOf('"containsSelectedVideos":"ALL"') >= 0;
+  }
+
+  function addToPlaylist(entry, playlistId, toast) {
     var config = window.ytcfg;
     var get = config && typeof config.get === 'function' ? function(key){ return config.get(key); } : function(){ return null; };
     var key = get('INNERTUBE_API_KEY');
     var context = get('INNERTUBE_CONTEXT');
     var sapisid = cookieValue('SAPISID') || cookieValue('__Secure-3PAPISID');
     if (!key || !context || !sapisid || !entry || !entry.id) return;
-    sidHash(sapisid).then(function(hash){
-      var headers = {
-        'content-type': 'application/json',
-        authorization: 'SAPISIDHASH ' + hash,
-        'x-origin': location.origin,
-        'x-goog-authuser': '0',
-        'x-goog-pageid': String(get('DELEGATED_SESSION_ID') || '')
-      };
-      var clientName = get('INNERTUBE_CONTEXT_CLIENT_NAME');
-      var clientVersion = get('INNERTUBE_CONTEXT_CLIENT_VERSION');
-      if (clientName) headers['x-youtube-client-name'] = String(clientName);
-      if (clientVersion) headers['x-youtube-client-version'] = String(clientVersion);
-      return fetch('/youtubei/v1/browse/edit_playlist?key=' + encodeURIComponent(key) + '&prettyPrint=false', {
+    return sidHash(sapisid).then(function(hash){
+      var headers = youtubeHeaders(hash, get);
+      return fetch('/youtubei/v1/playlist/get_add_to_playlist?key=' + encodeURIComponent(key) + '&prettyPrint=false', {
         method: 'POST',
         credentials: 'same-origin',
         headers: headers,
-        body: JSON.stringify({
-          context: context,
-        playlistId: 'PLbagoXZg_pCU',
-        actions: [{ action: 'ACTION_ADD_VIDEO', addedVideoId: entry.id }]
-        })
+        body: JSON.stringify({ context: context, videoIds: [entry.id] })
+      }).then(function(response){
+        return response.text().then(function(text){
+          if (playlistContains(text, playlistId)) return null;
+          return fetch('/youtubei/v1/browse/edit_playlist?key=' + encodeURIComponent(key) + '&prettyPrint=false', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: headers,
+            body: JSON.stringify({
+              context: context,
+              playlistId: playlistId,
+              actions: [{ action: 'ACTION_ADD_VIDEO', addedVideoId: entry.id }]
+            })
+          });
+        });
       });
     }).then(function(response){
       if (!response) return;
       return response.text().then(function(text){
-        if (response.ok && text.indexOf('Buffer') >= 0) UI.showToast('Added to Buffer');
+        if (response.ok && text.indexOf('playlistEditVideoAddedResultData') >= 0) UI.showToast(toast);
       });
     }).catch(function(){});
   }
 
   function copyEntry(entry, button) {
-    addToBuffer(entry);
+    addToPlaylist(entry, BUFFER_ID, 'Added to Buffer');
     var copied = actions.copy(entry);
     copied.then(
       function(){
@@ -126,7 +151,34 @@
         copySubtitles(current, subsButton);
       }
     });
+    UI.addVideoCardAction(entry, {
+      id: 'tap-watch-later',
+      icon: icon(LATER_PATH),
+      title: 'Watch later',
+      ariaLabel: 'Watch later',
+      onClick: function(current, event, laterButton) {
+        saveWatchLater(current, laterButton);
+      }
+    });
     return button;
+  }
+
+  function saveWatchLater(entry, button) {
+    if (button) {
+      button.__tapCopyLabel = 'Watch later';
+      UI.setButtonIcon(button, icon(LOAD_PATH));
+    }
+    var pending = addToPlaylist(entry, LATER_ID, 'Added to Watch Later');
+    if (!pending) return;
+    pending.then(function(){
+      if (!button) return;
+      UI.setButtonIcon(button, icon(CHECK_PATH));
+      button.setAttribute('aria-label', 'Watch later');
+      button.title = 'Watch later';
+    }, function(){});
+    setTimeout(function(){
+      if (button && button.isConnected) UI.setButtonIcon(button, icon(LATER_PATH));
+    }, 1100);
   }
 
   function isPlaylistPage() {
@@ -291,11 +343,12 @@
       : UI.addWatchVideoAction(entry, options);
     if (button) button.__tapCopyLabel = options.ariaLabel;
     seatWatchSubs(entry);
+    seatWatchLater(entry);
     return button;
   }
 
   function copySubtitles(entry, button) {
-    addToBuffer(entry);
+    addToPlaylist(entry, BUFFER_ID, 'Added to Buffer');
     UI.showToast('Loading subtitles');
     if (button) UI.setButtonIcon(button, icon(LOAD_PATH));
     var pending = actions.copySubtitles(entry);
@@ -372,11 +425,52 @@
     if (subs.previousElementSibling !== copySlot) copySlot.parentElement.insertBefore(subs, copySlot.nextSibling);
   }
 
+  function watchLaterButton(entry) {
+    var button = document.getElementById('tap-watch-later-current');
+    if (!button) {
+      button = document.createElement('button');
+      button.id = 'tap-watch-later-current';
+      button.type = 'button';
+      button.appendChild(icon(LATER_PATH));
+      var label = document.createElement('span');
+      label.textContent = 'Later';
+      label.style.marginInlineStart = '6px';
+      button.appendChild(label);
+      button.title = 'Watch later';
+      button.setAttribute('aria-label', 'Watch later');
+      button.style.cssText = 'height:36px;padding:0 14px;border:0;border-radius:18px;background:#fff;color:#0f0f0f;cursor:pointer;display:inline-flex;align-items:center;font:500 14px/1 Roboto,Arial,sans-serif;margin-inline:4px;flex-shrink:0;white-space:nowrap;box-shadow:0 0 0 1px rgba(0,0,0,.35)';
+    }
+    button.onclick = function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      var id = UI.getVideoId(location.href);
+      saveWatchLater(id ? {
+        id: id,
+        url: location.href,
+        shortUrl: 'https://youtu.be/' + id,
+        element: entry.element,
+        host: entry.host
+      } : entry, button);
+    };
+    return button;
+  }
+
+  function seatWatchLater(entry) {
+    if (location.pathname !== '/watch' || !entry) return;
+    var subs = document.getElementById('tap-copy-current-subs');
+    if (!subs || !subs.parentElement) return;
+    var later = watchLaterButton(entry);
+    later.dataset.videoId = entry.id;
+    if (later.previousElementSibling !== subs) subs.parentElement.insertBefore(later, subs.nextSibling);
+  }
+
   function syncCurrentPage() {
     clearInterval(state.currentTimer);
     UI.removeElement('tap-copy-current-video');
     var subs = document.getElementById('tap-copy-current-subs');
     if (subs) subs.remove();
+    var later = document.getElementById('tap-watch-later-current');
+    if (later) later.remove();
     document.querySelectorAll('[data-youtube-ui-shorts-action="tap-copy-current-video"]')
       .forEach(function(element){ element.remove(); });
     var attempts = 0;
