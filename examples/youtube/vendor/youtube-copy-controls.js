@@ -27,15 +27,15 @@
 
   function compactWatchIcon(pathData) {
     var svg = icon(pathData);
-    svg.setAttribute('width', '12');
-    svg.setAttribute('height', '12');
-    svg.style.setProperty('width', '12px', 'important');
-    svg.style.setProperty('height', '12px', 'important');
+    svg.setAttribute('width', '24');
+    svg.setAttribute('height', '24');
+    svg.style.setProperty('width', '24px', 'important');
+    svg.style.setProperty('height', '24px', 'important');
     return svg;
   }
 
   function compactWatchButtonStyle() {
-    return 'width:18px;height:18px;padding:0;border:0;border-radius:9px;background:#fff;color:#0f0f0f;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-inline:2px;flex:0 0 18px;white-space:nowrap;box-shadow:0 0 0 1px rgba(0,0,0,.35)';
+    return 'width:36px;height:36px;padding:0;border:0;border-radius:18px;background:#fff;color:#0f0f0f;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-inline:4px;flex:0 0 36px;white-space:nowrap;box-shadow:0 0 0 1px rgba(0,0,0,.35)';
   }
 
   function flash(button, stateName, message) {
@@ -361,7 +361,6 @@
 
   function copySubtitles(entry, button) {
     addToPlaylist(entry, BUFFER_ID, 'Added to Buffer');
-    UI.showToast('Loading subtitles');
     if (button) UI.setButtonIcon(button, icon(LOAD_PATH));
     var pending = actions.copySubtitles(entry);
     pending.then(

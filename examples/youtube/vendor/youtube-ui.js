@@ -337,26 +337,26 @@
       if (!container) return null;
 
       const button = this._createButton(options, {
-        minWidth: '18px',
-        height: '18px',
-        padding: options.label ? '0 7px' : '0 5px',
-        gap: '4px',
+        minWidth: '36px',
+        height: '36px',
+        padding: options.label ? '0 14px' : '0 10px',
+        gap: '7px',
         border: '0',
-        borderRadius: '9px',
+        borderRadius: '18px',
         background: 'var(--yt-spec-badge-chip-background, rgba(255,255,255,.1))',
         color: 'var(--yt-spec-text-primary, currentColor)',
         cursor: 'pointer',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        font: '500 7px/1 Roboto, Arial, sans-serif',
-        marginInline: '2px',
+        font: '500 14px/1 Roboto, Arial, sans-serif',
+        marginInline: '4px',
         whiteSpace: 'nowrap',
       });
       if (!button) return null;
       button.querySelectorAll('svg').forEach((svg) => {
-        svg.style.setProperty('width', '12px', 'important');
-        svg.style.setProperty('height', '12px', 'important');
+        svg.style.setProperty('width', '24px', 'important');
+        svg.style.setProperty('height', '24px', 'important');
       });
 
       const before = this.findVisible('moreActionsButton') || this.find('moreActionsButton');
