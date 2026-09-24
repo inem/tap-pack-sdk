@@ -25,6 +25,19 @@
     return svg;
   }
 
+  function compactWatchIcon(pathData) {
+    var svg = icon(pathData);
+    svg.setAttribute('width', '12');
+    svg.setAttribute('height', '12');
+    svg.style.setProperty('width', '12px', 'important');
+    svg.style.setProperty('height', '12px', 'important');
+    return svg;
+  }
+
+  function compactWatchButtonStyle() {
+    return 'height:18px;padding:0 7px;border:0;border-radius:9px;background:#fff;color:#0f0f0f;cursor:pointer;display:inline-flex;align-items:center;font:500 7px/1 Roboto,Arial,sans-serif;margin-inline:2px;flex-shrink:0;white-space:nowrap;box-shadow:0 0 0 1px rgba(0,0,0,.35)';
+  }
+
   function flash(button, stateName, message) {
     if (!button) return;
     clearTimeout(button.__tapFlashTimer);
@@ -373,14 +386,14 @@
       button = document.createElement('button');
       button.id = 'tap-copy-current-subs';
       button.type = 'button';
-      button.appendChild(icon(SUBS_PATH));
+      button.appendChild(compactWatchIcon(SUBS_PATH));
       var label = document.createElement('span');
       label.textContent = 'Subs';
-      label.style.marginInlineStart = '6px';
+      label.style.marginInlineStart = '3px';
       button.appendChild(label);
       button.title = 'Copy subtitles';
       button.setAttribute('aria-label', 'Copy subtitles');
-      button.style.cssText = 'height:36px;padding:0 14px;border:0;border-radius:18px;background:#fff;color:#0f0f0f;cursor:pointer;display:inline-flex;align-items:center;font:500 14px/1 Roboto,Arial,sans-serif;margin-inline:4px;flex-shrink:0;white-space:nowrap;box-shadow:0 0 0 1px rgba(0,0,0,.35)';
+      button.style.cssText = compactWatchButtonStyle();
     }
     button.onclick = function(event){
       event.preventDefault();
@@ -431,14 +444,14 @@
       button = document.createElement('button');
       button.id = 'tap-watch-later-current';
       button.type = 'button';
-      button.appendChild(icon(LATER_PATH));
+      button.appendChild(compactWatchIcon(LATER_PATH));
       var label = document.createElement('span');
       label.textContent = 'Later';
-      label.style.marginInlineStart = '6px';
+      label.style.marginInlineStart = '3px';
       button.appendChild(label);
       button.title = 'Watch later';
       button.setAttribute('aria-label', 'Watch later');
-      button.style.cssText = 'height:36px;padding:0 14px;border:0;border-radius:18px;background:#fff;color:#0f0f0f;cursor:pointer;display:inline-flex;align-items:center;font:500 14px/1 Roboto,Arial,sans-serif;margin-inline:4px;flex-shrink:0;white-space:nowrap;box-shadow:0 0 0 1px rgba(0,0,0,.35)';
+      button.style.cssText = compactWatchButtonStyle();
     }
     button.onclick = function(event){
       event.preventDefault();
