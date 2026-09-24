@@ -784,7 +784,8 @@
       const gap = 8;
       const size = 40;
       slots.forEach((slot, index) => {
-        slot.style.setProperty('inset-inline-end', `${gap + ((slots.length - 1 - index) * (size + gap))}px`, 'important');
+        slot.style.setProperty('inset-inline-start', `${gap + (index * (size + gap))}px`, 'important');
+        slot.style.removeProperty('inset-inline-end');
         slot.style.setProperty('bottom', `${gap}px`, 'important');
       });
     },
@@ -795,6 +796,7 @@
       const host = this.getVideoCardActionHost(target);
       if (!host || host.layout !== 'rich') return null;
       const { entry, nativeSlot, surface } = host;
+      const actionSurface = entry.thumbnail || surface;
       const actionId = options.id || 'video-card-action';
       const existing = Array.from(entry.element.querySelectorAll('[data-youtube-ui-card-corner-action]'))
         .find((element) => element.dataset.youtubeUiCardCornerAction === actionId);
@@ -811,7 +813,7 @@
       slot.dataset.videoId = entry.id;
       Object.assign(slot.style, {
         position: 'absolute',
-        insetInlineEnd: '8px',
+        insetInlineStart: '8px',
         bottom: '8px',
         width: '40px',
         height: '40px',
@@ -837,10 +839,10 @@
       button.style.setProperty('background', '#fff', 'important');
       button.style.setProperty('color', '#0f0f0f', 'important');
       button.style.setProperty('box-shadow', '0 0 0 1px rgba(0,0,0,.35), 0 2px 10px rgba(0,0,0,.45)', 'important');
-      if (window.getComputedStyle(surface).position === 'static') {
-        surface.style.position = 'relative';
+      if (window.getComputedStyle(actionSurface).position === 'static') {
+        actionSurface.style.position = 'relative';
       }
-      surface.appendChild(slot);
+      actionSurface.appendChild(slot);
       this._removeOtherVideoCardActions(entry, actionId, slot);
       const configured = this._configureVideoActionButton(button, entry, options, actionId);
       this._layoutVideoCardCornerActions(entry);
@@ -851,12 +853,13 @@
       let rail = entry.element.querySelector('[data-youtube-ui-card-compact-action-rail]');
       if (rail?.dataset.videoId === entry.id) return rail;
       if (rail) rail.remove();
+      const actionSurface = entry.thumbnail || surface;
       rail = document.createElement('div');
       rail.dataset.youtubeUiCardCompactActionRail = '';
       rail.dataset.videoId = entry.id;
       Object.assign(rail.style, {
         position: 'absolute',
-        insetInlineEnd: '8px',
+        insetInlineStart: '8px',
         bottom: '8px',
         display: 'flex',
         flexDirection: 'row',
@@ -864,10 +867,10 @@
         gap: '4px',
         zIndex: '30',
       });
-      if (window.getComputedStyle(surface).position === 'static') {
-        surface.style.position = 'relative';
+      if (window.getComputedStyle(actionSurface).position === 'static') {
+        actionSurface.style.position = 'relative';
       }
-      surface.appendChild(rail);
+      actionSurface.appendChild(rail);
       return rail;
     },
 
