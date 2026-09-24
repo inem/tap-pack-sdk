@@ -34,6 +34,15 @@ import './vendor/caption-status.js';
         if (!text) throw new Error('empty');
         return text;
       }));
+    },
+    sendSubtitlesToChatGPT(entry) {
+      const bridge = window.TapBridge;
+      if (!bridge || !bridge.request) return Promise.reject(new Error('bridge'));
+      return bridge.request('example.sdk-youtube-copy', {
+        op: 'chatgpt.subtitles',
+        videoId: entry.id,
+        url: linkFor(entry)
+      });
     }
   });
   state.setCaptionsEnabled = enabled => settings.prepareCaptions = !!enabled;

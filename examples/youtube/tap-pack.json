@@ -1,21 +1,32 @@
 {
   "id": "example.sdk-youtube-copy",
-  "version": "0.2.32",
+  "version": "0.2.36",
   "intent": "Copy a selected YouTube video link in one gesture. Optionally request captions for local TAP capture; publication stays a separate user action.",
   "license": "MIT",
   "page": "page.js",
   "files": [
     "LICENSE",
+    "handler.py",
     "vendor/PROVENANCE.md"
   ],
+  "entrypoints": {
+    "handler": {
+      "file": "handler.py",
+      "interface": "python-jsonl-v1"
+    }
+  },
+  "config": {
+    "request-timeout-ms": {
+      "type": "integer",
+      "default": 60000
+    }
+  },
   "access": {
     "origins": [
-      "https://www.youtube.com",
-      "https://youtube.com",
-      "https://www.youtube-nocookie.com",
-      "https://dopo.st"
+      "*"
     ],
     "capabilities": [
+      "bridge.handle",
       "page.inject"
     ]
   }

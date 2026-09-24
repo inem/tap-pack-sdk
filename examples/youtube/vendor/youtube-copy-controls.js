@@ -8,6 +8,7 @@
   var LOAD_PATH = 'M11 4h2v9l3.5-3.5 1.4 1.4L12 16.8l-5.9-5.9 1.4-1.4L11 13V4zm-5 15h12v2H6v-2z';
   var COPY_ALL_PATH = 'M7 2h10v2H7V2zM4 6h16v2H4V6zm2 4h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm0 2v8h12v-8H6z';
   var SUBS_PATH = 'M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4V6h16v12zM6 11h4v2H6v-2zm6 0h6v2h-6v-2z';
+  var CHAT_PATH = 'M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v9h2v1.8L8.3 15H20V6H4zm3 3h7v2H7V9zm0 3h10v2H7v-2z';
   var LATER_PATH = 'M12 2a10 10 0 1 0 .001 0zM12.5 7H11v6l4.7 2.8.8-1.3-4-2.4V7z';
 
   function icon(pathData) {
@@ -166,6 +167,15 @@
       ariaLabel: 'Copy subtitles',
       onClick: function(current, event, subsButton) {
         copySubtitles(current, subsButton);
+      }
+    });
+    UI.addVideoCardAction(entry, {
+      id: 'tap-chatgpt-subs',
+      icon: icon(CHAT_PATH),
+      title: 'Send subtitles to ChatGPT',
+      ariaLabel: 'Send subtitles to ChatGPT',
+      onClick: function(current, event, chatButton) {
+        sendSubtitlesToChatGPT(current, chatButton);
       }
     });
     UI.addVideoCardAction(entry, {
@@ -360,6 +370,7 @@
       : UI.addWatchVideoAction(entry, options);
     if (button) button.__tapCopyLabel = options.ariaLabel;
     seatWatchSubs(entry);
+    seatWatchChatGPT(entry);
     seatWatchLater(entry);
     return button;
   }
@@ -387,14 +398,21 @@
       ariaLabel: 'Watch later',
       onClick: function(event, button){ saveWatchLater(entry, button); }
     });
-    [copy, subs, later].forEach(function(button) {
+    var chat = UI.addPlayerButton({
+      id: 'tap-chatgpt-subs-current',
+      icon: icon(CHAT_PATH),
+      title: 'Send subtitles to ChatGPT',
+      ariaLabel: 'Send subtitles to ChatGPT',
+      onClick: function(event, button){ sendSubtitlesToChatGPT(entry, button); }
+    });
+    [copy, subs, chat, later].forEach(function(button) {
       if (!button) return;
       button.dataset.videoId = entry.id;
       button.style.setProperty('width', '36px', 'important');
       button.style.setProperty('height', '100%', 'important');
       button.style.setProperty('padding', '0 6px', 'important');
     });
-    return copy || subs || later;
+    return copy || subs || chat || later;
   }
 
   function isEmbedFrame(frame) {
@@ -463,6 +481,9 @@
       rail.appendChild(embeddedControl('subs', SUBS_PATH, 'Copy subtitles', function(button) {
         copySubtitles(entry, button);
       }));
+      rail.appendChild(embeddedControl('chatgpt', CHAT_PATH, 'Send subtitles to ChatGPT', function(button) {
+        sendSubtitlesToChatGPT(entry, button);
+      }));
       if (window.ytcfg) {
         rail.appendChild(embeddedControl('later', LATER_PATH, 'Watch later', function(button) {
           saveWatchLater(entry, button);
@@ -501,6 +522,37 @@
     setTimeout(function(){
       if (button && button.isConnected) UI.setButtonIcon(button, icon(SUBS_PATH));
     }, 1100);
+  }
+
+  function sendSubtitlesToChatGPT(entry, button) {
+    if (!actions.sendSubtitlesToChatGPT) return;
+    if (button) UI.setButtonIcon(button, icon(LOAD_PATH));
+    actions.sendSubtitlesToChatGPT(entry).then(
+      function(){
+        UI.showToast('Sent to ChatGPT');
+        if (button) UI.setButtonIcon(button, icon(CHECK_PATH));
+      },
+      function(error){
+        UI.showToast(chatGPTErrorMessage(error));
+        if (button) UI.setButtonIcon(button, icon(ERROR_PATH));
+      }
+    );
+    setTimeout(function(){
+      if (button && button.isConnected) UI.setButtonIcon(button, icon(CHAT_PATH));
+    }, 1400);
+  }
+
+  function chatGPTErrorMessage(error) {
+    var message = String(error && error.message || error || '');
+    if (message.indexOf('Handler is not granted') >= 0 || message.indexOf('handler_denied') >= 0) {
+      return 'ChatGPT action not granted here';
+    }
+    if (message.indexOf('tap CLI not found') >= 0 || message.indexOf('No such file or directory') >= 0) {
+      return 'TAP CLI not found';
+    }
+    if (message.indexOf('empty') >= 0) return 'No subtitles';
+    if (message.indexOf('timeout') >= 0) return 'ChatGPT send timed out';
+    return 'ChatGPT send failed';
   }
 
   function subtitleErrorMessage(error) {
@@ -594,11 +646,46 @@
 
   function seatWatchLater(entry) {
     if (location.pathname !== '/watch' || !entry) return;
-    var subs = document.getElementById('tap-copy-current-subs');
-    if (!subs || !subs.parentElement) return;
+    var previous = document.getElementById('tap-chatgpt-subs-current') || document.getElementById('tap-copy-current-subs');
+    if (!previous || !previous.parentElement) return;
     var later = watchLaterButton(entry);
     later.dataset.videoId = entry.id;
-    if (later.previousElementSibling !== subs) subs.parentElement.insertBefore(later, subs.nextSibling);
+    if (later.previousElementSibling !== previous) previous.parentElement.insertBefore(later, previous.nextSibling);
+  }
+
+  function watchChatGPTButton(entry) {
+    var button = document.getElementById('tap-chatgpt-subs-current');
+    if (!button) {
+      button = document.createElement('button');
+      button.id = 'tap-chatgpt-subs-current';
+      button.type = 'button';
+      button.appendChild(compactWatchIcon(CHAT_PATH));
+      button.title = 'Send subtitles to ChatGPT';
+      button.setAttribute('aria-label', 'Send subtitles to ChatGPT');
+      button.style.cssText = compactWatchButtonStyle();
+    }
+    button.onclick = function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      var id = UI.getVideoId(location.href);
+      sendSubtitlesToChatGPT(id ? {
+        id: id,
+        url: location.href,
+        shortUrl: 'https://youtu.be/' + id,
+        element: entry.element,
+        host: entry.host
+      } : entry, button);
+    };
+    return button;
+  }
+
+  function seatWatchChatGPT(entry) {
+    if (location.pathname !== '/watch' || !entry) return;
+    var subs = document.getElementById('tap-copy-current-subs');
+    if (!subs || !subs.parentElement) return;
+    var chat = watchChatGPTButton(entry);
+    chat.dataset.videoId = entry.id;
+    if (chat.previousElementSibling !== subs) subs.parentElement.insertBefore(chat, subs.nextSibling);
   }
 
   function compactNativeShare() {
@@ -632,6 +719,8 @@
     UI.removeElement('tap-copy-current-video');
     var subs = document.getElementById('tap-copy-current-subs');
     if (subs) subs.remove();
+    var chat = document.getElementById('tap-chatgpt-subs-current');
+    if (chat) chat.remove();
     var later = document.getElementById('tap-watch-later-current');
     if (later) later.remove();
     document.querySelectorAll('[data-youtube-ui-shorts-action="tap-copy-current-video"]')
@@ -710,6 +799,20 @@
     if (!id || location.pathname !== '/watch') return;
     compactNativeShare();
     seatWatchSubs({
+      id: id,
+      url: location.href,
+      shortUrl: 'https://youtu.be/' + id,
+      element: document.documentElement,
+      host: document.documentElement
+    });
+    seatWatchChatGPT({
+      id: id,
+      url: location.href,
+      shortUrl: 'https://youtu.be/' + id,
+      element: document.documentElement,
+      host: document.documentElement
+    });
+    seatWatchLater({
       id: id,
       url: location.href,
       shortUrl: 'https://youtu.be/' + id,
