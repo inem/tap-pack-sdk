@@ -182,7 +182,7 @@ def send_to_chatgpt(context, path):
 
 
 def handle(context, args):
-    if not isinstance(args, dict) or args.get("op") != "chatgpt.subtitles":
+    if not isinstance(args, dict) or args.get("op") not in {"subtitles", "chatgpt.subtitles"}:
         raise ValueError("invalid_request")
     video = args.get("videoId")
     if not isinstance(video, str) or not VIDEO.fullmatch(video):
@@ -191,6 +191,8 @@ def handle(context, args):
     lang, text = subtitles(context, video)
     if not text:
         raise ValueError("empty")
+    if args.get("op") == "subtitles":
+        return {"videoId": video, "lang": lang, "text": text}
     prompt = write_prompt(context, video, url, lang, text)
     output = send_to_chatgpt(context, prompt)
     return {"videoId": video, "lang": lang, "file": str(prompt), "chatgpt": output}

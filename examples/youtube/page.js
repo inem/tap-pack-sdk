@@ -26,7 +26,11 @@ import './vendor/caption-status.js';
     copySubtitles(entry) {
       const bridge = window.TapBridge;
       if (!bridge || !bridge.request) return Promise.reject(new Error('bridge'));
-      return clipboard.writeTextDeferred(() => bridge.request('youtube.subtitles', { videoId: entry.id }).then(saved => {
+      return clipboard.writeTextDeferred(() => bridge.request('example.sdk-youtube-copy', {
+        op: 'subtitles',
+        videoId: entry.id,
+        url: linkFor(entry)
+      }).then(saved => {
         const text = String(saved && saved.text || '')
           .replace(/^\[(?:Music|Applause|Laughter)\]$/gm, '')
           .replace(/\n{2,}/g, '\n')
