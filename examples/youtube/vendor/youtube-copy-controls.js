@@ -38,6 +38,10 @@
     return 'width:36px;height:36px;padding:0;border:0;border-radius:18px;background:#fff;color:#0f0f0f;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-inline:4px;flex:0 0 36px;white-space:nowrap;box-shadow:0 0 0 1px rgba(0,0,0,.35)';
   }
 
+  function embedButtonStyle() {
+    return 'width:36px;height:36px;padding:0;border:0;border-radius:18px;background:#fff;color:#0f0f0f;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;box-shadow:0 2px 12px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.24)';
+  }
+
   function flash(button, stateName, message) {
     if (!button) return;
     clearTimeout(button.__tapFlashTimer);
@@ -343,6 +347,7 @@
       element: document.documentElement,
       host: document.documentElement
     };
+    if (location.pathname.indexOf('/embed/') === 0) return mountEmbedPlayer(entry);
     var options = {
       id: 'tap-copy-current-video',
       icon: icon(COPY_PATH),
@@ -357,6 +362,126 @@
     seatWatchSubs(entry);
     seatWatchLater(entry);
     return button;
+  }
+
+  function mountEmbedPlayer(entry) {
+    var copy = UI.addPlayerButton({
+      id: 'tap-copy-current-video',
+      icon: icon(COPY_PATH),
+      title: 'Copy video URL ' + actions.linkFor(entry)(),
+      ariaLabel: 'Copy video URL ' + actions.linkFor(entry)(),
+      onClick: function(event, button){ copyEntry(entry, button); }
+    });
+    if (copy) copy.__tapCopyLabel = 'Copy video URL ' + actions.linkFor(entry)();
+    var subs = UI.addPlayerButton({
+      id: 'tap-copy-current-subs',
+      icon: icon(SUBS_PATH),
+      title: 'Copy subtitles',
+      ariaLabel: 'Copy subtitles',
+      onClick: function(event, button){ copySubtitles(entry, button); }
+    });
+    var later = UI.addPlayerButton({
+      id: 'tap-watch-later-current',
+      icon: icon(LATER_PATH),
+      title: 'Watch later',
+      ariaLabel: 'Watch later',
+      onClick: function(event, button){ saveWatchLater(entry, button); }
+    });
+    [copy, subs, later].forEach(function(button) {
+      if (!button) return;
+      button.dataset.videoId = entry.id;
+      button.style.setProperty('width', '36px', 'important');
+      button.style.setProperty('height', '100%', 'important');
+      button.style.setProperty('padding', '0 6px', 'important');
+    });
+    return copy || subs || later;
+  }
+
+  function isEmbedFrame(frame) {
+    if (!frame || !frame.src) return false;
+    var id = UI.getVideoId(frame.src);
+    if (!id) return false;
+    try {
+      return /(^|\.)youtube(-nocookie)?\.com$/.test(new URL(frame.src, location.href).hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function embedEntry(frame) {
+    var id = UI.getVideoId(frame.src);
+    if (!id) return null;
+    return {
+      id: id,
+      url: 'https://www.youtube.com/watch?v=' + id,
+      shortUrl: 'https://youtu.be/' + id,
+      element: frame,
+      host: frame
+    };
+  }
+
+  function embeddedControl(id, pathData, title, handler) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.tapYoutubeEmbedButton = id;
+    button.appendChild(compactWatchIcon(pathData));
+    button.title = title;
+    button.setAttribute('aria-label', title);
+    button.style.cssText = embedButtonStyle();
+    button.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      handler(button);
+    }, true);
+    return button;
+  }
+
+  function mountEmbeddedFrame(frame) {
+    if (!isEmbedFrame(frame)) return;
+    var entry = embedEntry(frame);
+    if (!entry) return;
+    var host = frame.parentElement || document.body;
+    if (!host || !host.style) return;
+    var style = getComputedStyle(host);
+    if (style.position === 'static') host.style.position = 'relative';
+
+    var frameRect = frame.getBoundingClientRect();
+    var hostRect = host.getBoundingClientRect();
+    if (!frameRect.width || !frameRect.height) return;
+
+    var rail = Array.from(host.querySelectorAll('[data-tap-youtube-embed-rail]'))
+      .find(function(candidate){ return candidate.dataset.frameSrc === frame.src; });
+    if (!rail) {
+      rail = document.createElement('div');
+      rail.dataset.tapYoutubeEmbedRail = '';
+      rail.dataset.frameSrc = frame.src;
+      rail.dataset.videoId = entry.id;
+      rail.style.cssText = 'position:absolute;display:flex;gap:8px;align-items:center;z-index:2147483600;pointer-events:auto';
+      rail.appendChild(embeddedControl('copy', COPY_PATH, 'Copy video URL ' + actions.linkFor(entry)(), function(button) {
+        copyEntry(entry, button);
+      }));
+      rail.appendChild(embeddedControl('subs', SUBS_PATH, 'Copy subtitles', function(button) {
+        copySubtitles(entry, button);
+      }));
+      if (window.ytcfg) {
+        rail.appendChild(embeddedControl('later', LATER_PATH, 'Watch later', function(button) {
+          saveWatchLater(entry, button);
+        }));
+      }
+      host.appendChild(rail);
+    }
+    rail.dataset.videoId = entry.id;
+    rail.style.left = Math.max(8, frameRect.left - hostRect.left + 10) + 'px';
+    rail.style.top = Math.max(8, frameRect.top - hostRect.top + frameRect.height - 46) + 'px';
+  }
+
+  function mountEmbeddedIframes() {
+    var frames = Array.from(document.querySelectorAll('iframe[src*="youtube.com/embed/"],iframe[src*="youtube-nocookie.com/embed/"]'));
+    frames.forEach(mountEmbeddedFrame);
+    document.querySelectorAll('[data-tap-youtube-embed-rail]').forEach(function(rail) {
+      var found = frames.some(function(frame){ return frame.src === rail.dataset.frameSrc && frame.isConnected; });
+      if (!found) rail.remove();
+    });
   }
 
   function copySubtitles(entry, button) {
@@ -504,10 +629,12 @@
       .forEach(function(element){ element.remove(); });
     var attempts = 0;
     mountCurrentPage();
+    mountEmbeddedIframes();
     compactNativeShare();
     state.currentTimer = setInterval(function(){
       attempts++;
       mountCurrentPage();
+      mountEmbeddedIframes();
       compactNativeShare();
       if (attempts >= 32) clearInterval(state.currentTimer);
     }, 50);
@@ -564,6 +691,7 @@
   state.cardReconcileTimer = setInterval(function() {
     UI.getVideoEntries(document, { unique: true }).slice(0, 80).forEach(mountCard);
   }, 1000);
+  state.embedReconcileTimer = setInterval(mountEmbeddedIframes, 1000);
   window.addEventListener('keydown', onCopyShortcut, true);
   window.addEventListener('yt-navigate-finish', syncCurrentPage);
   window.addEventListener('yt-page-data-updated', syncCurrentPage);
@@ -584,6 +712,7 @@
     clearInterval(state.currentTimer);
     clearInterval(state.watchSubsTimer);
     clearInterval(state.cardReconcileTimer);
+    clearInterval(state.embedReconcileTimer);
     if (state.stopCards) state.stopCards();
     if (state.stopHover) state.stopHover();
     window.removeEventListener('keydown', onCopyShortcut, true);
