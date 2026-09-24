@@ -847,27 +847,76 @@
       return configured;
     },
 
-    /** Put a compact/horizontal/playlist action directly before native More. */
+    _compactVideoCardActionRail(entry, surface) {
+      let rail = entry.element.querySelector('[data-youtube-ui-card-compact-action-rail]');
+      if (rail?.dataset.videoId === entry.id) return rail;
+      if (rail) rail.remove();
+      rail = document.createElement('div');
+      rail.dataset.youtubeUiCardCompactActionRail = '';
+      rail.dataset.videoId = entry.id;
+      Object.assign(rail.style, {
+        position: 'absolute',
+        insetInlineEnd: '8px',
+        bottom: '8px',
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: '4px',
+        zIndex: '30',
+      });
+      if (window.getComputedStyle(surface).position === 'static') {
+        surface.style.position = 'relative';
+      }
+      surface.appendChild(rail);
+      return rail;
+    },
+
+    /** Put compact/horizontal actions in a small bottom rail. */
     addVideoCardEndcapAction(target, options = {}) {
       this._cardActionsHideUntilHover();
       const host = this.getVideoCardActionHost(target);
       if (!host || host.layout !== 'compact') return null;
-      const { entry, nativeSlot, parent } = host;
+      const { entry, surface } = host;
       const actionId = options.id || 'video-card-action';
       const existing = Array.from(entry.element.querySelectorAll('[data-youtube-ui-card-endcap-action]'))
         .find((element) => element.dataset.youtubeUiCardEndcapAction === actionId);
-      if (existing?.dataset.videoId === entry.id && existing.nextElementSibling === nativeSlot) {
+      if (existing?.dataset.videoId === entry.id) {
         return existing.matches('button') ? existing : existing.querySelector('button');
       }
       if (existing) existing.remove();
 
-      const cloned = this._cloneNativeActionSlot(nativeSlot);
-      if (!cloned) return null;
-      const { slot, button } = cloned;
+      const rail = this._compactVideoCardActionRail(entry, surface);
+      const slot = document.createElement('div');
+      const button = document.createElement('button');
       slot.dataset.youtubeUiCardEndcapAction = actionId;
       slot.dataset.youtubeUiCardAction = actionId;
       slot.dataset.videoId = entry.id;
-      parent.insertBefore(slot, nativeSlot);
+      Object.assign(slot.style, {
+        width: '28px',
+        height: '28px',
+        color: 'var(--yt-spec-text-primary, currentColor)',
+      });
+      button.type = 'button';
+      if (options.icon) button.appendChild(options.icon.cloneNode(true));
+      Object.assign(button.style, {
+        width: '28px',
+        height: '28px',
+        margin: '0',
+        padding: '6px',
+        border: '0',
+        borderRadius: '50%',
+        background: '#fff',
+        color: '#0f0f0f',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 0 0 1px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.35)',
+      });
+      slot.appendChild(button);
+      rail.appendChild(slot);
+      this._lockSquareControl(slot, 28);
+      this._lockSquareControl(button, 28, { button: true, padding: 6, iconSize: 16 });
       this._removeOtherVideoCardActions(entry, actionId, slot);
       return this._configureVideoActionButton(button, entry, options, actionId);
     },
