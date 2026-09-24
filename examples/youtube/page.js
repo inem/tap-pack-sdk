@@ -6,7 +6,9 @@ import './vendor/youtube-copy-controls.js';
 import './vendor/youtube-captions.js';
 import './vendor/caption-status.js';
 
-if (!window.__tapYoutubeCopyLinks) {
+{
+  const previous = window.__tapYoutubeCopyLinks;
+  if (previous && typeof previous.stop === 'function') previous.stop();
   const clipboard = browser_clipboard(navigator, document);
   const captionState = { lastCaptionRequest: null };
   const linkFor = entry => video_link(entry, settings);
@@ -20,7 +22,19 @@ if (!window.__tapYoutubeCopyLinks) {
           }) : undefined;
       return copy_with_preparation(linkFor(entry), clipboard, prepare).copy;
     },
-    copyText: text => clipboard.writeText(text)
+    copyText: text => clipboard.writeText(text),
+    copySubtitles(entry) {
+      const bridge = window.TapBridge;
+      if (!bridge || !bridge.request) return Promise.reject(new Error('bridge'));
+      return clipboard.writeTextDeferred(() => bridge.request('youtube.subtitles', { videoId: entry.id }).then(saved => {
+        const text = String(saved && saved.text || '')
+          .replace(/^\[(?:Music|Applause|Laughter)\]$/gm, '')
+          .replace(/\n{2,}/g, '\n')
+          .trim();
+        if (!text) throw new Error('empty');
+        return text;
+      }));
+    }
   });
   state.setCaptionsEnabled = enabled => settings.prepareCaptions = !!enabled;
   Object.defineProperty(state, 'lastCaptionRequest', { get: () => captionState.lastCaptionRequest });

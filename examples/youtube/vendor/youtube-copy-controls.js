@@ -7,6 +7,7 @@
   var ERROR_PATH = 'm6.4 5 5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5z';
   var LOAD_PATH = 'M11 4h2v9l3.5-3.5 1.4 1.4L12 16.8l-5.9-5.9 1.4-1.4L11 13V4zm-5 15h12v2H6v-2z';
   var COPY_ALL_PATH = 'M7 2h10v2H7V2zM4 6h16v2H4V6zm2 4h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm0 2v8h12v-8H6z';
+  var SUBS_PATH = 'M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4V6h16v12zM6 11h4v2H6v-2zm6 0h6v2h-6v-2z';
 
   function icon(pathData) {
     var namespace = 'http://www.w3.org/2000/svg';
@@ -39,7 +40,58 @@
     }, 1100);
   }
 
+  function cookieValue(name) {
+    var match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  function sidHash(sapisid) {
+    var ts = Math.floor(Date.now() / 1000);
+    return crypto.subtle.digest('SHA-1', new TextEncoder().encode(ts + ' ' + sapisid + ' ' + location.origin)).then(function(bytes){
+      var hex = Array.from(new Uint8Array(bytes), function(b){ return b.toString(16).padStart(2, '0'); }).join('');
+      return ts + '_' + hex;
+    });
+  }
+
+  function addToBuffer(entry) {
+    var config = window.ytcfg;
+    var get = config && typeof config.get === 'function' ? function(key){ return config.get(key); } : function(){ return null; };
+    var key = get('INNERTUBE_API_KEY');
+    var context = get('INNERTUBE_CONTEXT');
+    var sapisid = cookieValue('SAPISID') || cookieValue('__Secure-3PAPISID');
+    if (!key || !context || !sapisid || !entry || !entry.id) return;
+    sidHash(sapisid).then(function(hash){
+      var headers = {
+        'content-type': 'application/json',
+        authorization: 'SAPISIDHASH ' + hash,
+        'x-origin': location.origin,
+        'x-goog-authuser': '0',
+        'x-goog-pageid': String(get('DELEGATED_SESSION_ID') || '')
+      };
+      var clientName = get('INNERTUBE_CONTEXT_CLIENT_NAME');
+      var clientVersion = get('INNERTUBE_CONTEXT_CLIENT_VERSION');
+      if (clientName) headers['x-youtube-client-name'] = String(clientName);
+      if (clientVersion) headers['x-youtube-client-version'] = String(clientVersion);
+      return fetch('/youtubei/v1/browse/edit_playlist?key=' + encodeURIComponent(key) + '&prettyPrint=false', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: headers,
+        body: JSON.stringify({
+          context: context,
+        playlistId: 'PLbagoXZg_pCU',
+        actions: [{ action: 'ACTION_ADD_VIDEO', addedVideoId: entry.id }]
+        })
+      });
+    }).then(function(response){
+      if (!response) return;
+      return response.text().then(function(text){
+        if (response.ok && text.indexOf('Buffer') >= 0) UI.showToast('Added to Buffer');
+      });
+    }).catch(function(){});
+  }
+
   function copyEntry(entry, button) {
+    addToBuffer(entry);
     var copied = actions.copy(entry);
     copied.then(
       function(){
@@ -65,6 +117,15 @@
       }
     });
     if (button) button.__tapCopyLabel = 'Copy video URL ' + actions.linkFor(entry)();
+    var subs = UI.addVideoCardAction(entry, {
+      id: 'tap-copy-subs',
+      icon: icon(SUBS_PATH),
+      title: 'Copy subtitles',
+      ariaLabel: 'Copy subtitles',
+      onClick: function(current, event, subsButton) {
+        copySubtitles(current, subsButton);
+      }
+    });
     return button;
   }
 
@@ -229,12 +290,93 @@
       ? UI.addShortsAction(entry, options)
       : UI.addWatchVideoAction(entry, options);
     if (button) button.__tapCopyLabel = options.ariaLabel;
+    seatWatchSubs(entry);
     return button;
+  }
+
+  function copySubtitles(entry, button) {
+    addToBuffer(entry);
+    UI.showToast('Loading subtitles');
+    if (button) UI.setButtonIcon(button, icon(LOAD_PATH));
+    var pending = actions.copySubtitles(entry);
+    pending.then(
+      function(){
+        UI.showToast('Subtitles copied');
+        if (button) UI.setButtonIcon(button, icon(CHECK_PATH));
+      },
+      function(){
+        UI.showToast('No subtitles');
+        if (button) UI.setButtonIcon(button, icon(ERROR_PATH));
+      }
+    );
+    setTimeout(function(){
+      if (button && button.isConnected) UI.setButtonIcon(button, icon(SUBS_PATH));
+    }, 1100);
+  }
+
+  function watchSubsButton(entry) {
+    var button = document.getElementById('tap-copy-current-subs');
+    if (!button) {
+      button = document.createElement('button');
+      button.id = 'tap-copy-current-subs';
+      button.type = 'button';
+      button.appendChild(icon(SUBS_PATH));
+      var label = document.createElement('span');
+      label.textContent = 'Subs';
+      label.style.marginInlineStart = '6px';
+      button.appendChild(label);
+      button.title = 'Copy subtitles';
+      button.setAttribute('aria-label', 'Copy subtitles');
+      button.style.cssText = 'height:36px;padding:0 14px;border:0;border-radius:18px;background:#fff;color:#0f0f0f;cursor:pointer;display:inline-flex;align-items:center;font:500 14px/1 Roboto,Arial,sans-serif;margin-inline:4px;flex-shrink:0;white-space:nowrap;box-shadow:0 0 0 1px rgba(0,0,0,.35)';
+    }
+    button.onclick = function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      var id = UI.getVideoId(location.href);
+      copySubtitles(id ? {
+        id: id,
+        url: location.href,
+        shortUrl: 'https://youtu.be/' + id,
+        element: entry.element,
+        host: entry.host
+      } : entry, button);
+    };
+    return button;
+  }
+
+  function seatWatchSubs(entry) {
+    if (location.pathname !== '/watch' || !entry) return;
+    var actionsRoot = document.querySelector('ytd-watch-metadata #actions');
+    if (!actionsRoot) return;
+    var nodes = [];
+    function collect(root) {
+      var found = root.querySelectorAll('button, [role="button"]');
+      for (var n = 0; n < found.length; n++) nodes.push(found[n]);
+      var hosts = root.querySelectorAll('*');
+      for (var h = 0; h < hosts.length; h++) if (hosts[h].shadowRoot) collect(hosts[h].shadowRoot);
+    }
+    collect(actionsRoot);
+    var copySlot = null;
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (node.id === 'tap-copy-current-subs') continue;
+      var label = (node.innerText || node.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+      if (label === 'Copy' || label.indexOf('Copy video') === 0 || label === 'Копировать') {
+        copySlot = node.closest('yt-button-view-model, ytd-button-renderer') || node;
+        break;
+      }
+    }
+    if (!copySlot || !copySlot.parentElement) return;
+    var subs = watchSubsButton(entry);
+    subs.dataset.videoId = entry.id;
+    if (subs.previousElementSibling !== copySlot) copySlot.parentElement.insertBefore(subs, copySlot.nextSibling);
   }
 
   function syncCurrentPage() {
     clearInterval(state.currentTimer);
     UI.removeElement('tap-copy-current-video');
+    var subs = document.getElementById('tap-copy-current-subs');
+    if (subs) subs.remove();
     document.querySelectorAll('[data-youtube-ui-shorts-action="tap-copy-current-video"]')
       .forEach(function(element){ element.remove(); });
     var attempts = 0;
@@ -266,12 +408,62 @@
     copyEntry(state.hoveredEntry, null);
   }
 
-  state.stopCards = UI.onVideoCards(mountCard, { repeat: true, timeoutMs: 1600 });
-  state.stopHover = UI.onVideoHover(function(entry){ state.hoveredEntry = entry; }, { highlight: true });
+  var hotCard = null;
+  function setCardActionsVisible(card, visible) {
+    if (!card) return;
+    Array.from(card.querySelectorAll('[data-youtube-ui-card-action]')).forEach(function(slot) {
+      slot.style.setProperty('opacity', visible ? '1' : '0', 'important');
+      slot.style.setProperty('pointer-events', visible ? 'auto' : 'none', 'important');
+      if (visible) slot.style.setProperty('z-index', '30', 'important');
+    });
+  }
+  function markHot(entry) {
+    var next = null;
+    if (entry && entry.id) {
+      var slot = document.querySelector('[data-youtube-ui-card-action][data-video-id="' + entry.id + '"]');
+      next = slot && slot.closest('ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer, yt-lockup-view-model');
+    }
+    if (hotCard && hotCard !== next) {
+      delete hotCard.dataset.tapCardHot;
+      setCardActionsVisible(hotCard, false);
+    }
+    hotCard = next;
+    if (next) {
+      next.dataset.tapCardHot = '';
+      setCardActionsVisible(next, true);
+    }
+  }
+
+  state.stopCards = UI.onVideoCards(mountCard, { repeat: true, timeoutMs: 1600, initial: true });
+  state.stopHover = UI.onVideoHover(function(entry){ state.hoveredEntry = entry; markHot(entry); });
+  state.cardReconcileTimer = setInterval(function() {
+    UI.getVideoEntries(document, { unique: true }).slice(0, 80).forEach(mountCard);
+  }, 1000);
   window.addEventListener('keydown', onCopyShortcut, true);
   window.addEventListener('yt-navigate-finish', syncCurrentPage);
   window.addEventListener('yt-page-data-updated', syncCurrentPage);
   syncCurrentPage();
+  state.watchSubsTimer = setInterval(function(){
+    var id = UI.getVideoId(location.href);
+    if (!id || location.pathname !== '/watch') return;
+    seatWatchSubs({
+      id: id,
+      url: location.href,
+      shortUrl: 'https://youtu.be/' + id,
+      element: document.documentElement,
+      host: document.documentElement
+    });
+  }, 500);
+  state.stop = function() {
+    clearInterval(state.currentTimer);
+    clearInterval(state.watchSubsTimer);
+    clearInterval(state.cardReconcileTimer);
+    if (state.stopCards) state.stopCards();
+    if (state.stopHover) state.stopHover();
+    window.removeEventListener('keydown', onCopyShortcut, true);
+    window.removeEventListener('yt-navigate-finish', syncCurrentPage);
+    window.removeEventListener('yt-page-data-updated', syncCurrentPage);
+  };
   return state;
   };
 })();

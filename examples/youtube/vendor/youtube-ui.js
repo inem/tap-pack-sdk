@@ -680,7 +680,6 @@
 
       ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'auxclick'].forEach((type) => {
         button.addEventListener(type, (event) => {
-          event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
         });
@@ -743,8 +742,34 @@
         });
     },
 
+    _cardActionsHideUntilHover() {
+      let style = document.getElementById('tap-card-action-hover');
+      if (!style) {
+        style = document.createElement('style');
+        style.id = 'tap-card-action-hover';
+        document.documentElement.appendChild(style);
+      }
+      style.textContent = '[data-youtube-ui-card-action]{opacity:0!important;pointer-events:none!important;transition:opacity .12s ease}'
+        + ':is(ytd-rich-item-renderer,ytd-video-renderer,ytd-grid-video-renderer,ytd-compact-video-renderer,yt-lockup-view-model):hover [data-youtube-ui-card-action],'
+        + '[data-tap-card-hot] [data-youtube-ui-card-action],'
+        + '[data-youtube-ui-card-action]:focus-within{opacity:1!important;pointer-events:auto!important;z-index:30}';
+    },
+
+    _layoutVideoCardCornerActions(entry) {
+      if (!entry?.element) return;
+      const slots = Array.from(entry.element.querySelectorAll('[data-youtube-ui-card-corner-action]'))
+        .filter((slot) => slot.dataset.videoId === entry.id);
+      const gap = 8;
+      const size = 40;
+      slots.forEach((slot, index) => {
+        slot.style.setProperty('inset-inline-end', `${gap + ((slots.length - 1 - index) * (size + gap))}px`, 'important');
+        slot.style.setProperty('bottom', `${gap}px`, 'important');
+      });
+    },
+
     /** Put a rich/grid card action in the lower end corner of the whole card. */
     addVideoCardCornerAction(target, options = {}) {
+      this._cardActionsHideUntilHover();
       const host = this.getVideoCardActionHost(target);
       if (!host || host.layout !== 'rich') return null;
       const { entry, nativeSlot, surface } = host;
@@ -787,16 +812,22 @@
       });
       this._lockSquareControl(slot, 40);
       this._lockSquareControl(button, 40, { button: true, padding: 8, iconSize: 24 });
+      button.style.setProperty('background', '#fff', 'important');
+      button.style.setProperty('color', '#0f0f0f', 'important');
+      button.style.setProperty('box-shadow', '0 0 0 1px rgba(0,0,0,.35), 0 2px 10px rgba(0,0,0,.45)', 'important');
       if (window.getComputedStyle(surface).position === 'static') {
         surface.style.position = 'relative';
       }
       surface.appendChild(slot);
       this._removeOtherVideoCardActions(entry, actionId, slot);
-      return this._configureVideoActionButton(button, entry, options, actionId);
+      const configured = this._configureVideoActionButton(button, entry, options, actionId);
+      this._layoutVideoCardCornerActions(entry);
+      return configured;
     },
 
     /** Put a compact/horizontal/playlist action directly before native More. */
     addVideoCardEndcapAction(target, options = {}) {
+      this._cardActionsHideUntilHover();
       const host = this.getVideoCardActionHost(target);
       if (!host || host.layout !== 'compact') return null;
       const { entry, nativeSlot, parent } = host;
