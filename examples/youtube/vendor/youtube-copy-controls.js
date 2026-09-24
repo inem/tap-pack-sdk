@@ -472,7 +472,7 @@
     }
     rail.dataset.videoId = entry.id;
     rail.style.left = Math.max(8, frameRect.left - hostRect.left + 10) + 'px';
-    rail.style.top = Math.max(8, frameRect.top - hostRect.top + frameRect.height - 46) + 'px';
+    rail.style.top = Math.max(8, frameRect.top - hostRect.top + frameRect.height - 96) + 'px';
   }
 
   function mountEmbeddedIframes() {
@@ -493,14 +493,23 @@
         UI.showToast('Subtitles copied');
         if (button) UI.setButtonIcon(button, icon(CHECK_PATH));
       },
-      function(){
-        UI.showToast('No subtitles');
+      function(error){
+        UI.showToast(subtitleErrorMessage(error));
         if (button) UI.setButtonIcon(button, icon(ERROR_PATH));
       }
     );
     setTimeout(function(){
       if (button && button.isConnected) UI.setButtonIcon(button, icon(SUBS_PATH));
     }, 1100);
+  }
+
+  function subtitleErrorMessage(error) {
+    var message = String(error && error.message || error || '');
+    if (message.indexOf('Handler is not granted') >= 0 || message.indexOf('handler_denied') >= 0) {
+      return 'Subtitles access not granted here';
+    }
+    if (message.indexOf('bridge') >= 0) return 'Subtitles bridge unavailable';
+    return 'No subtitles';
   }
 
   function watchSubsButton(entry) {
